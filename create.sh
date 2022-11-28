@@ -4,8 +4,11 @@ set -ex
 
 : ${BRANCH:=v3.17}
 : ${IMAGE_FILE:=$PWD/alpine-rpi-kiosk-$BRANCH.img}
-: ${PACKAGES:="alpine-base linux-rpi linux-rpi4 linux-firmware-other raspberrypi-bootloader openssl dosfstools e2fsprogs"}
+: ${BASE_PACKAGES:="alpine-base linux-rpi linux-rpi4 linux-firmware-other raspberrypi-bootloader openssl dosfstools e2fsprogs"}
+: ${XORG_PACKAGES:="xorg-server xf86-input-libinput eudev mesa-dri-gallium xf86-video-fbdev mesa-egl xrandr chromium"}
 : ${IP_ADDRESS:=}
+: ${RESOLUTION:=1280x720}
+: ${HOME_URL:=https://www.google.com}
 : ${ROOT_MNT:="$(mktemp -d)"}
 
 
@@ -83,6 +86,34 @@ setup_network() {
 	fi
 }
 
+gen_setup_script() {
+	cat <<-EOF
+	#!/bin/sh
+
+	set -ex
+
+	# Needed by X11
+	setup-devd udev || true
+	EOF
+}
+
+setup_xorg() {
+	# Based on https://wiki.alpinelinux.org/wiki/Raspberry_Pi_3_-_Browser_Client
+
+	cat <<-EOF >> "$ROOT_MNT"/root/.xinitrc
+	xrandr -s $RESOLUTION
+	chromium-browser --no-sandbox --kiosk --window-size=${RESOLUTION/x/,} $HOME_URL
+	EOF
+
+	cat <<-EOF >> "$ROOT_MNT"/root/.profile
+	startx
+	poweroff
+	EOF
+
+	# Automatic login
+	sed -i "s|^\(tty1::.*\)|#\1\ntty1::respawn:/bin/login -f root|" "$ROOT_MNT"/etc/inittab
+}
+
 clean_files() {
 	rm -f "$1"{/env.sh,/enter-chroot,/destroy,/apk.static,/setup.sh}
 	find "$1"{/var/cache/apk,/root} -mindepth 1 -delete
@@ -144,11 +175,17 @@ mkdir -p "$ROOT_MNT/boot"
 mount --make-private "$BOOT_DEV" "$ROOT_MNT/boot"
 
 curl https://raw.githubusercontent.com/alpinelinux/alpine-chroot-install/master/alpine-chroot-install \
-	| sh -s -- -a aarch64 -b "$BRANCH" -d "$ROOT_MNT" -p "$PACKAGES"
+	| sh -s -- -a aarch64 -b "$BRANCH" -d "$ROOT_MNT" -p "$BASE_PACKAGES $XORG_PACKAGES"
 
 setup_disk
 setup_bootloader
 setup_network
+
+gen_setup_script > "$ROOT_MNT"/setup.sh
+chmod +x "$ROOT_MNT"/setup.sh
+"$ROOT_MNT"/enter-chroot /setup.sh
+
+setup_xorg
 
 clean_files "$ROOT_MNT"
 umount -lf "$ROOT_MNT"
