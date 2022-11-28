@@ -15,6 +15,7 @@ set -ex
 : ${HOME_URL:=https://www.google.com}
 : ${ROOT_MNT:="$(mktemp -d)"}
 : ${COMPRESSOR:=xz -4f -T0}
+: ${COMMANDS:=:}
 
 
 setup_first_boot() {
@@ -246,6 +247,8 @@ chmod +x "$ROOT_MNT"/setup.sh
 "$ROOT_MNT"/enter-chroot /setup.sh
 
 setup_xorg
+
+eval $COMMANDS
 
 clean_files "$ROOT_MNT"
 umount -lf "$ROOT_MNT"
