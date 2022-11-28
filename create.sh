@@ -6,7 +6,7 @@ set -ex
 : ${IMAGE_FILE:=$PWD/alpine-rpi-kiosk-$BRANCH.img}
 : ${BASE_PACKAGES:="alpine-base linux-rpi linux-rpi4 linux-firmware-other raspberrypi-bootloader openssl dosfstools e2fsprogs"}
 : ${XORG_PACKAGES:="xorg-server xf86-input-libinput eudev mesa-dri-gallium xf86-video-fbdev mesa-egl xrandr chromium"}
-: ${PACKAGES:="chrony doas"}
+: ${PACKAGES:="chrony doas e2fsprogs-extra parted lsblk"}
 : ${ROOTPASS:=raspberry}
 : ${USERNAME:=pi}
 : ${USERPASS:=raspberry}
@@ -16,6 +16,42 @@ set -ex
 : ${ROOT_MNT:="$(mktemp -d)"}
 : ${COMPRESSOR:=xz -4f -T0}
 
+
+setup_first_boot() {
+	# Based on https://github.com/knoopx/alpine-raspberry-pi/blob/master/bootstrap/99-first-boot
+
+	cat <<-'EOF' > "$ROOT_MNT"/usr/bin/first-boot
+	#!/bin/sh
+	set -xe
+
+	ROOT_PARTITION=$(df -P / | tail -1 | cut -d' ' -f1)
+	SYS_DISK="/dev/$(lsblk -ndo PKNAME $ROOT_PARTITION)"
+
+	cat <<PARTED | parted ---pretend-input-tty $SYS_DISK
+	unit %
+	resizepart 2
+	Yes
+	100%
+	PARTED
+
+	partprobe
+	resize2fs $ROOT_PARTITION
+	rc-update del first-boot
+	rm /etc/init.d/first-boot /usr/bin/first-boot
+
+	reboot
+	EOF
+
+	cat <<-EOF > "$ROOT_MNT"/etc/init.d/first-boot
+	#!/sbin/openrc-run
+	command="/usr/bin/first-boot"
+	command_background=false
+	depend() {
+	    after modules
+	    need localmount
+	}
+	EOF
+}
 
 setup_disk() {
 	local boot_uuid=$(blkid -o value -s UUID "$BOOT_DEV")
@@ -110,6 +146,9 @@ gen_setup_script() {
 	rc-update add swclock boot
 	rc-update del hwclock boot || true
 	setup-ntp chrony || true
+
+	chmod +x /etc/init.d/first-boot /usr/bin/first-boot
+	rc-update add first-boot
 	EOF
 }
 
@@ -197,6 +236,7 @@ mount --make-private "$BOOT_DEV" "$ROOT_MNT/boot"
 curl https://raw.githubusercontent.com/alpinelinux/alpine-chroot-install/master/alpine-chroot-install \
 	| sh -s -- -a aarch64 -b "$BRANCH" -d "$ROOT_MNT" -p "$BASE_PACKAGES $XORG_PACKAGES $PACKAGES"
 
+setup_first_boot
 setup_disk
 setup_bootloader
 setup_network
