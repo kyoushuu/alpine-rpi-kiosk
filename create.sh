@@ -6,6 +6,10 @@ set -ex
 : ${IMAGE_FILE:=$PWD/alpine-rpi-kiosk-$BRANCH.img}
 : ${BASE_PACKAGES:="alpine-base linux-rpi linux-rpi4 linux-firmware-other raspberrypi-bootloader openssl dosfstools e2fsprogs"}
 : ${XORG_PACKAGES:="xorg-server xf86-input-libinput eudev mesa-dri-gallium xf86-video-fbdev mesa-egl xrandr chromium"}
+: ${PACKAGES:="doas"}
+: ${ROOTPASS:=raspberry}
+: ${USERNAME:=pi}
+: ${USERPASS:=raspberry}
 : ${IP_ADDRESS:=}
 : ${RESOLUTION:=1280x720}
 : ${HOME_URL:=https://www.google.com}
@@ -94,24 +98,34 @@ gen_setup_script() {
 
 	# Needed by X11
 	setup-devd udev || true
+
+	echo "root:$ROOTPASS" | /usr/sbin/chpasswd
+
+	# Create user
+	adduser -D "$USERNAME"
+	echo "$USERNAME:$USERPASS" | /usr/sbin/chpasswd
 	EOF
 }
 
 setup_xorg() {
 	# Based on https://wiki.alpinelinux.org/wiki/Raspberry_Pi_3_-_Browser_Client
 
-	cat <<-EOF >> "$ROOT_MNT"/root/.xinitrc
+	cat <<-EOF >> "$ROOT_MNT"/home/$USERNAME/.xinitrc
 	xrandr -s $RESOLUTION
-	chromium-browser --no-sandbox --kiosk --window-size=${RESOLUTION/x/,} $HOME_URL
+	chromium-browser --kiosk --window-size=${RESOLUTION/x/,} $HOME_URL
 	EOF
 
-	cat <<-EOF >> "$ROOT_MNT"/root/.profile
+	cat <<-EOF >> "$ROOT_MNT"/home/$USERNAME/.profile
 	startx
-	poweroff
+	doas /sbin/poweroff
+	EOF
+
+	cat <<-EOF >> "$ROOT_MNT"/etc/doas.d/doas.conf
+	permit nopass $USERNAME as root cmd /sbin/poweroff
 	EOF
 
 	# Automatic login
-	sed -i "s|^\(tty1::.*\)|#\1\ntty1::respawn:/bin/login -f root|" "$ROOT_MNT"/etc/inittab
+	sed -i "s|^\(tty1::.*\)|#\1\ntty1::respawn:/bin/login -f $USERNAME|" "$ROOT_MNT"/etc/inittab
 }
 
 clean_files() {
@@ -175,7 +189,7 @@ mkdir -p "$ROOT_MNT/boot"
 mount --make-private "$BOOT_DEV" "$ROOT_MNT/boot"
 
 curl https://raw.githubusercontent.com/alpinelinux/alpine-chroot-install/master/alpine-chroot-install \
-	| sh -s -- -a aarch64 -b "$BRANCH" -d "$ROOT_MNT" -p "$BASE_PACKAGES $XORG_PACKAGES"
+	| sh -s -- -a aarch64 -b "$BRANCH" -d "$ROOT_MNT" -p "$BASE_PACKAGES $XORG_PACKAGES $PACKAGES"
 
 setup_disk
 setup_bootloader
