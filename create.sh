@@ -14,6 +14,7 @@ set -ex
 : ${RESOLUTION:=1280x720}
 : ${HOME_URL:=https://www.google.com}
 : ${ROOT_MNT:="$(mktemp -d)"}
+: ${COMPRESSOR:=xz -4f -T0}
 
 
 setup_disk() {
@@ -213,3 +214,5 @@ rmdir "$ROOT_MNT"
 shrink_image "$IMAGE_FILE" "$ROOT_DEV"
 losetup -d "$LOOP_DEV"
 truncate_image "$IMAGE_FILE"
+
+$COMPRESSOR "$IMAGE_FILE"
