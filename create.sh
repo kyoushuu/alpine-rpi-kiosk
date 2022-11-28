@@ -7,6 +7,9 @@ set -ex
 : ${BASE_PACKAGES:="alpine-base linux-rpi linux-rpi4 linux-firmware-other raspberrypi-bootloader openssl dosfstools e2fsprogs"}
 : ${XORG_PACKAGES:="xorg-server xf86-input-libinput eudev mesa-dri-gallium xf86-video-fbdev mesa-egl xrandr chromium"}
 : ${PACKAGES:="chrony doas e2fsprogs-extra parted lsblk"}
+: ${KEYBOARD_LAYOUT:="us"}
+: ${KEYBOARD_VARIANT:="us"}
+: ${TIMEZONE:="UTC"}
 : ${ROOTPASS:=raspberry}
 : ${USERNAME:=pi}
 : ${USERPASS:=raspberry}
@@ -147,6 +150,9 @@ gen_setup_script() {
 	rc-update add swclock boot
 	rc-update del hwclock boot || true
 	setup-ntp chrony || true
+
+	setup-keymap $KEYBOARD_LAYOUT $KEYBOARD_VARIANT || true
+	setup-timezone $TIMEZONE || true
 
 	chmod +x /etc/init.d/first-boot /usr/bin/first-boot
 	rc-update add first-boot
