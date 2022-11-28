@@ -6,7 +6,7 @@ set -ex
 : ${IMAGE_FILE:=$PWD/alpine-rpi-kiosk-$BRANCH.img}
 : ${BASE_PACKAGES:="alpine-base linux-rpi linux-rpi4 linux-firmware-other raspberrypi-bootloader openssl dosfstools e2fsprogs"}
 : ${XORG_PACKAGES:="xorg-server xf86-input-libinput eudev mesa-dri-gallium xf86-video-fbdev mesa-egl xrandr chromium"}
-: ${PACKAGES:="doas"}
+: ${PACKAGES:="chrony doas"}
 : ${ROOTPASS:=raspberry}
 : ${USERNAME:=pi}
 : ${USERPASS:=raspberry}
@@ -104,6 +104,11 @@ gen_setup_script() {
 	# Create user
 	adduser -D "$USERNAME"
 	echo "$USERNAME:$USERPASS" | /usr/sbin/chpasswd
+
+	# Raspberry Pi has no hardware clock
+	rc-update add swclock boot
+	rc-update del hwclock boot || true
+	setup-ntp chrony || true
 	EOF
 }
 
