@@ -92,6 +92,36 @@ clean_files() {
 	fi
 }
 
+shrink_image() {
+	# From https://github.com/knoopx/alpine-raspberry-pi/blob/master/make-image
+
+	# Shrink image
+	local part_start=$(parted -ms "$1" unit B print | tail -n 1 | cut -d ':' -f 2 | tr -d 'B')
+	local block_size=$(tune2fs -l "$2" | grep '^Block size:' | tr -d ' ' | cut -d ':' -f 2)
+	local min_size=$(resize2fs -P "$2" | cut -d ':' -f 2 | tr -d ' ')
+
+	# Shrink fs
+	e2fsck -f -p "$2"
+	resize2fs -p "$2" "$min_size"
+
+	# Shrink partition
+	local part_end=$((part_start + (min_size * block_size)))
+	parted ---pretend-input-tty "$1" <<-EOF
+	unit B
+	resizepart 2 $part_end
+	yes
+	quit
+	EOF
+}
+
+truncate_image() {
+	# From https://github.com/knoopx/alpine-raspberry-pi/blob/master/make-image
+
+	# Truncate free space
+	local free_start=$(parted -ms "$1" unit B print free | tail -1 | cut -d ':' -f 2 | tr -d 'B')
+	truncate -s "$free_start" "$1"
+}
+
 
 dd if=/dev/zero of=$IMAGE_FILE bs=2M count=1K
 
@@ -123,4 +153,7 @@ setup_network
 clean_files "$ROOT_MNT"
 umount -lf "$ROOT_MNT"
 rmdir "$ROOT_MNT"
+
+shrink_image "$IMAGE_FILE" "$ROOT_DEV"
 losetup -d "$LOOP_DEV"
+truncate_image "$IMAGE_FILE"
