@@ -1,0 +1,42 @@
+on:
+  push:
+    branches:
+      - '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v1
+
+    - run: |
+        build_date=$(date +%Y%m%d)
+        build_number=$[$(git tag | grep -c $build_date || true) + 1]
+
+        TAG="$build_date.$build_number"
+        BRANCH="v3.17"
+        IMAGE_FILE="alpine-rpi-kiosk-$BRANCH-$TAG.img"
+
+        docker run \
+          --rm --privileged \
+          -v /dev:/dev:ro \
+          -v "$PWD":/alpine-rpi-kiosk -w /alpine-rpi-kiosk \
+          -e BRANCH="$BRANCH" \
+          -e IMAGE_FILE="$IMAGE_FILE" \
+          ubuntu:jammy /bin/sh -c 'apt update && \
+            apt upgrade -y && \
+            apt install -y fdisk dosfstools curl parted xz-utils qemu-user-static binfmt-support && \
+            ./create.sh'
+
+        cat <<EOF >> $GITHUB_ENV
+        TAG=$TAG
+        IMAGE_FILE=$IMAGE_FILE
+        EOF
+
+    - env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      if: github.ref == 'refs/heads/master' && !env.ACT
+      run: |
+        gh release create "${{ env.TAG }}" \
+          -t "${{ env.TAG }}" \
+          "${{ env.IMAGE_FILE }}.xz"
