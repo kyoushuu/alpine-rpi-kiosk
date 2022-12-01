@@ -41,7 +41,22 @@ jobs:
 
     - env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      if: github.ref == 'refs/heads/master' && !env.ACT
+        OWNER: ${{ github.repository_owner }}
+        REPO: ${{ github.event.repository.name }}
+      if: github.event_name == 'schedule'
+      run: |
+        wget -qO- https://$GITHUB_TOKEN:@api.github.com/repos/$OWNER/$REPO/releases/latest | \
+          grep "browser_download_url.*.apk.txt" | \
+          cut -d : -f 2,3 | tr -d \" | \
+          wget -qi- -O packages-latest.txt
+
+        if cmp -s "${{ env.PACKAGE_LIST }}" "packages-latest.txt"; then
+          echo "NO_UPDATES=true" >> $GITHUB_ENV
+        fi
+
+    - env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      if: github.ref == 'refs/heads/master' && env.NO_UPDATES != 'true' && !env.ACT
       run: |
         gh release create "${{ env.TAG }}" \
           -t "${{ env.TAG }}" \
