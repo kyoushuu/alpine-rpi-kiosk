@@ -17,7 +17,9 @@ jobs:
 
         TAG="$build_date.$build_number"
         BRANCH="v3.17"
-        IMAGE_FILE="alpine-rpi-kiosk-$BRANCH-$TAG.img"
+        BASE_NAME="alpine-rpi-kiosk-$BRANCH-$TAG"
+        IMAGE_FILE="$BASE_NAME.img"
+        PACKAGE_LIST="$BASE_NAME.apk.txt"
 
         docker run \
           --rm --privileged \
@@ -25,6 +27,7 @@ jobs:
           -v "$PWD":/alpine-rpi-kiosk -w /alpine-rpi-kiosk \
           -e BRANCH="$BRANCH" \
           -e IMAGE_FILE="$IMAGE_FILE" \
+          -e PACKAGE_LIST="$PACKAGE_LIST" \
           ubuntu:jammy /bin/sh -c 'apt update && \
             apt upgrade -y && \
             apt install -y fdisk dosfstools curl parted xz-utils qemu-user-static binfmt-support && \
@@ -33,6 +36,7 @@ jobs:
         cat <<EOF >> $GITHUB_ENV
         TAG=$TAG
         IMAGE_FILE=$IMAGE_FILE
+        PACKAGE_LIST=$PACKAGE_LIST
         EOF
 
     - env:
@@ -41,4 +45,5 @@ jobs:
       run: |
         gh release create "${{ env.TAG }}" \
           -t "${{ env.TAG }}" \
-          "${{ env.IMAGE_FILE }}.xz"
+          "${{ env.IMAGE_FILE }}.xz" \
+          "${{ env.PACKAGE_LIST }}"
