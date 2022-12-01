@@ -5,6 +5,7 @@ set -ex
 : ${BRANCH:=v3.17}
 : ${MIRROR:=http://dl-cdn.alpinelinux.org/alpine}
 : ${IMAGE_FILE:=$PWD/alpine-rpi-kiosk-$BRANCH.img}
+: ${PACKAGE_LIST:=}
 : ${BASE_PACKAGES:="alpine-base linux-rpi linux-rpi4 linux-firmware-other raspberrypi-bootloader openssl dosfstools e2fsprogs"}
 : ${XORG_PACKAGES:="xorg-server xf86-input-libinput eudev mesa-dri-gallium xf86-video-fbdev mesa-egl xrandr chromium"}
 : ${PACKAGES:="chrony doas e2fsprogs-extra parted lsblk"}
@@ -243,6 +244,10 @@ mount --make-private "$BOOT_DEV" "$ROOT_MNT/boot"
 
 curl https://raw.githubusercontent.com/alpinelinux/alpine-chroot-install/master/alpine-chroot-install \
 	| sh -s -- -a aarch64 -b "$BRANCH" -m "$MIRROR" -d "$ROOT_MNT" -p "$BASE_PACKAGES $XORG_PACKAGES $PACKAGES"
+
+if [ ! -z "$PACKAGE_LIST" ]; then
+	"$ROOT_MNT"/enter-chroot /bin/sh -c "apk list -I | sort" >> "$PACKAGE_LIST"
+fi
 
 setup_first_boot
 setup_disk
