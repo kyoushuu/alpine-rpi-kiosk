@@ -25,7 +25,7 @@ set -ex
 setup_first_boot() {
 	# Based on https://github.com/knoopx/alpine-raspberry-pi/blob/master/bootstrap/99-first-boot
 
-	cat <<-'EOF' > "$ROOT_MNT"/usr/bin/first-boot
+	cat <<-'EOF' > "$ROOT_MNT"/boot/first-boot.sh
 	#!/bin/sh
 	set -xe
 
@@ -42,14 +42,15 @@ setup_first_boot() {
 	partprobe
 	resize2fs $ROOT_PARTITION
 	rc-update del first-boot
-	rm /etc/init.d/first-boot /usr/bin/first-boot
+	rm /etc/init.d/first-boot /boot/first-boot.sh
 
 	reboot
 	EOF
 
 	cat <<-EOF > "$ROOT_MNT"/etc/init.d/first-boot
 	#!/sbin/openrc-run
-	command="/usr/bin/first-boot"
+	command="/bin/sh"
+	command_args="/boot/first-boot.sh"
 	command_background=false
 	depend() {
 	    after modules
@@ -155,7 +156,7 @@ gen_setup_script() {
 	setup-keymap $KEYBOARD_LAYOUT $KEYBOARD_VARIANT || true
 	setup-timezone $TIMEZONE || true
 
-	chmod +x /etc/init.d/first-boot /usr/bin/first-boot
+	chmod +x /etc/init.d/first-boot
 	rc-update add first-boot
 	EOF
 }
