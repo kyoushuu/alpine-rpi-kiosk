@@ -8,6 +8,8 @@ To configure, use the following environment variables:
 
 - `IMAGE_FILE` - Path to the output image file, but without the extension for compression if enabled. Default is `alpine-rpi-kiosk-$BRANCH.img`.
 
+- `PACKAGES` - Additional packages to install. Default is none.
+
 - `KEYBOARD_LAYOUT` - Set keyboard layout. Default is `us`.
 
 - `KEYBOARD_VARIANT` - Set keyboard variant. Default is `us`.

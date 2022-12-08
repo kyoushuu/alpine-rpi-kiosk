@@ -7,7 +7,8 @@ set -ex
 : ${IMAGE_FILE:=$PWD/alpine-rpi-kiosk-$BRANCH.img}
 : ${BASE_PACKAGES:="alpine-base linux-rpi linux-rpi4 linux-firmware-other raspberrypi-bootloader openssl dosfstools e2fsprogs"}
 : ${XORG_PACKAGES:="xorg-server xf86-input-libinput eudev mesa-dri-gallium xf86-video-fbdev mesa-egl xrandr chromium"}
-: ${PACKAGES:="chrony doas e2fsprogs-extra parted lsblk"}
+: ${EXTRA_PACKAGES:="chrony doas e2fsprogs-extra parted lsblk"}
+: ${PACKAGES:=}
 : ${KEYBOARD_LAYOUT:=us}
 : ${KEYBOARD_VARIANT:=us}
 : ${TIMEZONE:=UTC}
@@ -243,7 +244,9 @@ mkdir -p "$ROOT_MNT/boot"
 mount --make-private "$BOOT_DEV" "$ROOT_MNT/boot"
 
 curl https://raw.githubusercontent.com/alpinelinux/alpine-chroot-install/master/alpine-chroot-install \
-	| sh -s -- -a aarch64 -b "$BRANCH" -m "$MIRROR" -d "$ROOT_MNT" -p "$BASE_PACKAGES $XORG_PACKAGES $PACKAGES"
+	| sh -s -- \
+		-a aarch64 -b "$BRANCH" -m "$MIRROR" -d "$ROOT_MNT" \
+		-p "$BASE_PACKAGES $XORG_PACKAGES $EXTRA_PACKAGES $PACKAGES"
 
 setup_first_boot
 setup_disk
