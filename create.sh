@@ -147,6 +147,8 @@ gen_setup_script() {
 
 	# Create user
 	adduser -D "$USERNAME"
+	adduser "$USERNAME" video
+	adduser "$USERNAME" input
 	echo "$USERNAME:$USERPASS" | /usr/sbin/chpasswd
 
 	# Raspberry Pi has no hardware clock
