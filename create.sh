@@ -184,7 +184,7 @@ setup_xorg() {
 
 clean_files() {
 	rm -f "$1"{/env.sh,/enter-chroot,/destroy,/apk.static,/setup.sh}
-	find "$1"{/var/cache/apk,/root} -mindepth 1 -delete
+	find "$1"/var/cache/apk -mindepth 1 -delete
 
 	if [ -z "$IP_ADDRESS" ]; then
 		rm "$1"/etc/resolv.conf
