@@ -169,7 +169,7 @@ setup_xorg() {
 
 	cat <<-EOF >> "$ROOT_MNT"/home/$USERNAME/.xinitrc
 	xrandr -s $RESOLUTION
-	chromium-browser --kiosk --window-size=${RESOLUTION/x/,} $HOME_URL
+	chromium-browser --kiosk --window-size=${RESOLUTION/x/,} --guest $HOME_URL
 	EOF
 
 	cat <<-EOF >> "$ROOT_MNT"/home/$USERNAME/.profile
