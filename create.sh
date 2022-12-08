@@ -8,16 +8,16 @@ set -ex
 : ${BASE_PACKAGES:="alpine-base linux-rpi linux-rpi4 linux-firmware-other raspberrypi-bootloader openssl dosfstools e2fsprogs"}
 : ${XORG_PACKAGES:="xorg-server xf86-input-libinput eudev mesa-dri-gallium xf86-video-fbdev mesa-egl xrandr chromium"}
 : ${PACKAGES:="chrony doas e2fsprogs-extra parted lsblk"}
-: ${KEYBOARD_LAYOUT:="us"}
-: ${KEYBOARD_VARIANT:="us"}
-: ${TIMEZONE:="UTC"}
+: ${KEYBOARD_LAYOUT:=us}
+: ${KEYBOARD_VARIANT:=us}
+: ${TIMEZONE:=UTC}
 : ${ROOTPASS:=raspberry}
 : ${USERNAME:=pi}
 : ${USERPASS:=raspberry}
 : ${IP_ADDRESS:=}
 : ${RESOLUTION:=1280x720}
 : ${HOME_URL:=https://www.google.com}
-: ${ROOT_MNT:="$(mktemp -d)"}
+: ${ROOT_MNT:=$(mktemp -d)}
 : ${COMPRESSOR:=xz -4f -T0}
 : ${COMMANDS:=:}
 
