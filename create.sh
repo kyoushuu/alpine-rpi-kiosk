@@ -19,6 +19,7 @@ set -ex
 : ${RESOLUTION:=1280x720}
 : ${HOME_URL:=https://www.google.com}
 : ${ROOT_MNT:=$(mktemp -d)}
+: ${ROOT_SIZE:=2G}
 : ${COMPRESSOR:=xz -4f -T0}
 : ${COMMANDS:=:}
 
@@ -225,7 +226,8 @@ truncate_image() {
 }
 
 
-dd if=/dev/zero of=$IMAGE_FILE bs=2M count=1K
+rm -f "$IMAGE_FILE"
+truncate "$IMAGE_FILE" -s "$ROOT_SIZE"
 
 (echo o;                                    # Create partition table
  echo n; echo p; echo 1; echo; echo +128MB; # Create boot partition
