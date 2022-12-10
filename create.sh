@@ -27,7 +27,7 @@ set -ex
 setup_first_boot() {
 	# Based on https://github.com/knoopx/alpine-raspberry-pi/blob/master/bootstrap/99-first-boot
 
-	cat <<-'EOF' > "$ROOT_MNT"/boot/first-boot.sh
+	cat <<-'EOF' > "$ROOT_MNT"/boot/firstrun.sh
 	#!/bin/sh
 	set -xe
 
@@ -44,7 +44,7 @@ setup_first_boot() {
 	partprobe
 	resize2fs $ROOT_PARTITION
 	rc-update del first-boot
-	rm /etc/init.d/first-boot /boot/first-boot.sh
+	rm /etc/init.d/first-boot /boot/firstrun.sh
 
 	reboot
 	EOF
@@ -52,7 +52,7 @@ setup_first_boot() {
 	cat <<-EOF > "$ROOT_MNT"/etc/init.d/first-boot
 	#!/sbin/openrc-run
 	command="/bin/sh"
-	command_args="/boot/first-boot.sh"
+	command_args="/boot/firstrun.sh"
 	command_background=false
 	depend() {
 	    after modules
