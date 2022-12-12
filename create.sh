@@ -45,6 +45,7 @@ setup_first_boot() {
 	resize2fs $ROOT_PARTITION
 	rc-update del first-boot
 	rm /etc/init.d/first-boot /boot/firstrun.sh
+	echo -n " overlaytmpfs=yes" >> /boot/cmdline.txt
 
 	reboot
 	EOF
@@ -73,7 +74,7 @@ setup_disk() {
 	tmpfs	/tmp	tmpfs	nosuid,nodev	0	0
 	EOF
 
-	echo "root=UUID=$root_uuid modules=sd-mod,usb-storage,ext4 quiet rootfstype=ext4" > "$ROOT_MNT"/boot/cmdline.txt
+	echo -n "root=UUID=$root_uuid modules=sd-mod,usb-storage,ext4 quiet rootfstype=ext4" > "$ROOT_MNT"/boot/cmdline.txt
 }
 
 setup_bootloader() {
